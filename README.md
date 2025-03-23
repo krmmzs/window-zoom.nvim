@@ -6,6 +6,9 @@ A simple Neovim plugin for zooming in and out of windows, allowing you to focus 
 
 - Toggle zoom state of the current window
 - Separate zoom in and zoom out functions
+- Two zoom methods:
+  - Tab-based zooming (default): Opens the current window in a new tab
+  - Window hiding: Hides all windows except the current one
 - Customizable key mappings
 - Simple and lightweight implementation
 
@@ -20,3 +23,34 @@ A simple Neovim plugin for zooming in and out of windows, allowing you to focus 
         require('window-zoom').setup()
     end
 }
+
+## Config
+
+
+```lua
+require('window-zoom').setup({
+    -- Key mappings
+    mappings = {
+        toggle = "<leader>z", -- Default mapping to toggle zoom
+    },
+    -- Appearance
+    border = "none", -- Border style: "none", "single", "double", "rounded", "solid", "shadow"
+    -- Zoom method
+    use_tab_zoom = true, -- Use tab-based zooming instead of window hiding
+})
+```
+
+## Usage
+
+you can call
+
+```lua
+-- Toggle zoom state
+require('window-zoom').toggle()
+
+-- Zoom in
+require('window-zoom').zoom_in()
+
+-- Zoom out
+require('window-zoom').zoom_out()
+```
