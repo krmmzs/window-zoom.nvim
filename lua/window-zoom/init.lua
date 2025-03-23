@@ -1,19 +1,40 @@
+--[[
+Implementation approach:
+This window zoom functionality is designed based on a "save-modify-restore" pattern, implemented through these steps:
+1. State Preservation:
+   - Before zooming, save references to all windows, current window, and tab page information
+   - Use local table variables for storage, avoiding global namespace pollution
+2. Window Zooming:
+   - Maintain visibility of the current window
+   - Temporarily hide all other windows (using the hide property rather than closing them)
+   - Achieve a visual "maximization" effect while preserving all window states
+3. Layout Restoration:
+   - Perform multi-level safety checks to ensure operation validity
+   - Restore visibility of all windows
+   - Return focus to the original window
+   - Clean up saved state data
+Advantages: Non-destructive operation that preserves all window content and states, supporting perfect restoration to the pre-zoom layout.
+Use cases: Scenarios requiring temporary focus on a single window for editing or viewing content.
+]]
 local M = {}
+
+-- window state
+local is_zoomed = false
 
 -- Store the original window layout
 local original_layout = {}
-local is_zoomed = false
 
 -- Default configuration
 local default_config = {
   -- Key mappings
   mappings = {
-    toggle = "<C-w>z", -- Default mapping to toggle zoom
+    toggle = "<leader>z", -- Default mapping to toggle zoom
   },
   -- Appearance
   border = "none", -- Border style: "none", "single", "double", "rounded", "solid", "shadow"
 }
 
+-- deepcopy a new table for user's config
 local config = vim.deepcopy(default_config)
 
 -- Setup function to configure the plugin
@@ -29,6 +50,7 @@ end
 -- Save the current window layout
 local function save_layout()
   original_layout = {
+    -- These three APIs create a complete "snapshot"
     wins = vim.api.nvim_list_wins(),
     current = vim.api.nvim_get_current_win(),
     tab = vim.api.nvim_get_current_tabpage(),
@@ -103,4 +125,3 @@ function M.zoom_out()
 end
 
 return M
-
