@@ -32,6 +32,8 @@ local default_config = {
   },
   -- Appearance
   border = "none", -- Border style: "none", "single", "double", "rounded", "solid", "shadow"
+  -- Zoom method
+  use_tab_zoom = true, -- Use tab-based zooming instead of window hiding
 }
 
 -- deepcopy a new table for user's config
@@ -45,6 +47,9 @@ function M.setup(user_config)
   if config.mappings.toggle then
     vim.keymap.set("n", config.mappings.toggle, M.toggle, { noremap = true, silent = true })
   end
+
+  -- Create user command for toggling zoom
+  vim.api.nvim_create_user_command("WindowZoomToggle", M.toggle, { desc = "Toggle window zoom on and off" })
 end
 
 -- Save the current window layout
@@ -81,8 +86,8 @@ local function restore_layout()
   original_layout = {}
 end
 
--- Zoom the current window
-local function zoom_window()
+-- Zoom the current window using window hiding approach
+local function zoom_window_by_hiding()
   local current_win = vim.api.nvim_get_current_win()
 
   -- Save layout before making any changes
@@ -100,34 +105,102 @@ local function zoom_window()
   end
 end
 
+-- Zoom in using tab-based approach
+local function zoom_window_by_tab()
+  -- Store view to get cursor position, folds, etc.
+  vim.cmd([[mkview]])
+
+  -- Open current split in a new tab
+  vim.cmd([[tab split]])
+
+  -- Set tab-specific variable to mark this as a zoomed tab
+  vim.api.nvim_tabpage_set_var(0, "window_zoom", "zoomed")
+end
+
+-- Restore from tab-based zoom
+local function restore_from_tab_zoom()
+  -- Store view to get cursor position, folds, etc.
+  vim.cmd([[mkview]])
+
+  -- Close the tab and return to the un-zoomed view
+  vim.cmd([[tab close]])
+
+  -- Load the stored view
+  vim.cmd([[loadview]])
+end
+
+-- Zoom the current window (dispatcher function)
+local function zoom_window()
+  if config.use_tab_zoom then
+    zoom_window_by_tab()
+  else
+    zoom_window_by_hiding()
+  end
+end
+
 -- Toggle zoom state
 function M.toggle()
-  if is_zoomed then
-    restore_layout()
-    is_zoomed = false
-    vim.notify("Window zoom disabled", vim.log.levels.INFO)
+  if config.use_tab_zoom then
+    -- For tab-based zoom, check the tab variable
+    local is_tab_zoomed = false
+    pcall(function() is_tab_zoomed = vim.t.window_zoom == "zoomed" end)
+
+    if is_tab_zoomed then
+      restore_from_tab_zoom()
+      vim.notify("Window zoom disabled", vim.log.levels.INFO)
+    else
+      zoom_window()
+      vim.notify("Window zoom enabled", vim.log.levels.INFO)
+    end
   else
-    zoom_window()
-    is_zoomed = true
-    vim.notify("Window zoom enabled", vim.log.levels.INFO)
+    -- For window-hiding zoom, use the is_zoomed flag
+    if is_zoomed then
+      restore_layout()
+      is_zoomed = false
+      vim.notify("Window zoom disabled", vim.log.levels.INFO)
+    else
+      zoom_window()
+      is_zoomed = true
+      vim.notify("Window zoom enabled", vim.log.levels.INFO)
+    end
   end
 end
 
 -- Zoom in function
 function M.zoom_in()
-  if not is_zoomed then
-    zoom_window()
-    is_zoomed = true
-    vim.notify("Window zoom enabled", vim.log.levels.INFO)
+  if config.use_tab_zoom then
+    local is_tab_zoomed = false
+    pcall(function() is_tab_zoomed = vim.t.window_zoom == "zoomed" end)
+
+    if not is_tab_zoomed then
+      zoom_window()
+      vim.notify("Window zoom enabled", vim.log.levels.INFO)
+    end
+  else
+    if not is_zoomed then
+      zoom_window()
+      is_zoomed = true
+      vim.notify("Window zoom enabled", vim.log.levels.INFO)
+    end
   end
 end
 
 -- Zoom out function
 function M.zoom_out()
-  if is_zoomed then
-    restore_layout()
-    is_zoomed = false
-    vim.notify("Window zoom disabled", vim.log.levels.INFO)
+  if config.use_tab_zoom then
+    local is_tab_zoomed = false
+    pcall(function() is_tab_zoomed = vim.t.window_zoom == "zoomed" end)
+
+    if is_tab_zoomed then
+      restore_from_tab_zoom()
+      vim.notify("Window zoom disabled", vim.log.levels.INFO)
+    end
+  else
+    if is_zoomed then
+      restore_layout()
+      is_zoomed = false
+      vim.notify("Window zoom disabled", vim.log.levels.INFO)
+    end
   end
 end
 
