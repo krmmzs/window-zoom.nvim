@@ -65,13 +65,14 @@ local function restore_layout()
       -- Restore all windows
       for _, win in ipairs(original_layout.wins) do
         if vim.api.nvim_win_is_valid(win) then
-          vim.api.nvim_win_set_config(win, { hide = false })
+          -- Use pcall to safely handle any potential errors
+          pcall(vim.api.nvim_win_set_config, win, { hide = false })
         end
       end
 
       -- Focus the window that was focused before zooming
       if original_layout.current and vim.api.nvim_win_is_valid(original_layout.current) then
-        vim.api.nvim_set_current_win(original_layout.current)
+        pcall(vim.api.nvim_set_current_win, original_layout.current)
       end
     end
   end
@@ -83,12 +84,18 @@ end
 -- Zoom the current window
 local function zoom_window()
   local current_win = vim.api.nvim_get_current_win()
+
+  -- Save layout before making any changes
   save_layout()
 
-  -- Hide all windows except the current one
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
+  -- Get a fresh list of windows and hide all except the current one
+  -- This prevents issues with window IDs changing during the operation
+  local windows = vim.api.nvim_list_wins()
+  for _, win in ipairs(windows) do
+    -- Double-check window validity before attempting to hide it
     if win ~= current_win and vim.api.nvim_win_is_valid(win) then
-      vim.api.nvim_win_set_config(win, { hide = true })
+      -- Use pcall to safely handle any potential errors
+      pcall(vim.api.nvim_win_set_config, win, { hide = true })
     end
   end
 end

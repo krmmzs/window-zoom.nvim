@@ -14,7 +14,7 @@ A simple Neovim plugin for zooming in and out of windows, allowing you to focus 
 ### Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
-use {
+{
     'mouzaisi/window-zoom.nvim',
     config = function()
         require('window-zoom').setup()
